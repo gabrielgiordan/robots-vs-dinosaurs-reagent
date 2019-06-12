@@ -285,32 +285,46 @@
   [:div.container-fluid
    (filter identity children)])
 
+
+;;
+;; Board
+;;
+(defn get-unit-class
+  [units row col]
+  (some->
+    (fn [{{:keys [x y]} :point}]
+      (and (= row y) (= col x)))
+    (filter units)
+    (first)
+    (as->
+      $
+      (let
+        [{:keys                 [type]
+          {:keys [orientation]} :direction} $]
+        (str "pixelated "
+             type
+             (when orientation
+               (str " " type "-" orientation)))))))
+
 (defn board-table
   [board-ratom]
-  (let [{:keys                                        [id title]
-         {:keys [total]}                              :scoreboard
-         {:keys [units] {:keys [width height]} :size} :board} @board-ratom]
-    [:div
-     [:div.dinosaur.pixelated]
-     [:div.robot.pixelated]
-     [:div.robot.robot-right.pixelated]
-     [:div.robot.robot-left.pixelated]
-     [:div.robot.robot-up.pixelated]
-     [:div.robot.robot-down.pixelated]
-     ]
-    ;[ 
-    ; [:div.container
-    ; [:table.table.table-dark.table-bordered.table-hover.table-sm.table-responsive-sm
-    ;  [:tbody.board
-    ;   (repeat
-    ;     height
-    ;     [:tr
-    ;      (repeat
-    ;        width
-    ;        [:td ""])])]]]]
-    ))
-
-
+  (let [{{:keys [units] {:keys [width height]} :size} :board} @board-ratom]
+    ^{:key :board-table}
+    [:div.row.justify-content-center
+     [:div.col-auto
+      [:div
+       [:table.board.table.table-bordered.table-hover.table-sm.table-responsive-sm
+        [:tbody
+         ^{:key :board-table-body}
+         (for [x (range 0 width)]
+           ^{:key (str "tr-" x)}
+           [:tr
+            (for [y (range 0 height)]
+              ^{:key (str "td-" x "-" y)}
+              [:td.d-inline-block
+               {:data-x x
+                :data-y y
+                :class  (get-unit-class units x y)}])])]]]]]))
 
 ;;
 ;; Pages
