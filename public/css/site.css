@@ -1,0 +1,45 @@
+
+.robot {
+  display: block;
+  width: 40px;
+  height: 40px;
+  background: url('./../img/robot-sprite.png') left center/500px;
+  background-position: 0% 470%;
+  animation: play-robot .9s steps(19) infinite;
+}
+
+.robot-right {
+  background-position: 85% 461%;
+}
+
+.robot-up {
+  background-position: 60% 495%;
+}
+
+.robot-down {
+  background-position: 60% 478%;
+}
+
+.robot-left {
+  background-position: 85% 452%;
+}
+
+.dinosaur {
+  display: block;
+  width: 30px;
+  height: 30px;
+  background: url('./../img/dinosaur-sprite.png') left center/800px;
+  animation: play 1s steps(5) infinite;
+}
+
+.pixelated {
+  image-rendering: -webkit-optimize-contrast; // Safari 6, UC Browser 9.9
+  image-rendering: -webkit-crisp-edges; // Safari 7+
+  image-rendering: -moz-crisp-edges; // Firefox 3.6+
+  image-rendering: -o-crisp-edges; // Opera 12
+  image-rendering: pixelated; // Chrome 41+ and Opera 26+
+}
+
+@keyframes play {
+   100% { background-position: -500px; }
+}

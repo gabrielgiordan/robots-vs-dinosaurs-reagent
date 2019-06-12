@@ -44,7 +44,7 @@
       [:span message]]]))
 
 ;;
-;; REST
+;; AJAX
 ;;
 (defn error-handler
   [alert-ratom]
@@ -66,6 +66,14 @@
      :badge-class "badge-success"
      :alert-class "alert-success"
      :message     message}))
+
+(defn fetch-room!
+  [board-ratom alert-ratom room-id]
+  (GET
+    (str uri "/simulations/" room-id)
+    {:handler         #(reset! board-ratom %)
+     :error-handler   (error-handler alert-ratom)
+     :response-format :json, :keywords? true}))
 
 (defn fetch-rooms!
   [rooms-ratom alert-ratom]
@@ -167,7 +175,9 @@
     {{:keys [width height]} :size} :board :as room}
    rooms-ratom
    alert-ratom
-   modal-ratom]
+   modal-ratom
+   page-ratom
+   board-ratom]
   ^{:key id}
   [:div.col-sm-4
    [:div.card.text-white.bg-dark.mb-2
@@ -177,7 +187,10 @@
      [:h5.card-title.mb-4 title]
      [:p.card-text.text-monospace width " x " height]
      [:div.list-group
-      [:button.btn.btn-lg.btn-primary.mb-2 "Join »"]
+      [:button.btn.btn-lg.btn-primary.mb-2
+       {:on-click #((reset! board-ratom {:id id})
+                    (reset! page-ratom :board))}
+       "Join »"]
       [:button.btn.btn-sm.btn-secondary
        {:data-toggle "modal"
         :data-target "#modal"
@@ -200,20 +213,20 @@
        "New"]]]]])
 
 (defn room-cards
-  [rooms-ratom modal-ratom forms-ratom alert-ratom]
+  [rooms-ratom modal-ratom forms-ratom alert-ratom page-ratom board-ratom]
   ^{:key :room-cards}
   [:div.container-fluid
    [:div.row
     (room-card-new rooms-ratom alert-ratom modal-ratom forms-ratom)
     (for [room @rooms-ratom]
-      (room-card room rooms-ratom alert-ratom modal-ratom))]])
+      (room-card room rooms-ratom alert-ratom modal-ratom page-ratom board-ratom))]])
 
 ;;
 ;; Buttons
 ;;
 (defn button-small-secondary
   [text click-handler]
-  [:button.btn.btn-sm.btn-secondary {:on-click click-handler} text])
+  [:button.btn.btn-sm.btn-secondary.m-2 {:on-click click-handler} text])
 
 (defn button-refresh-rooms
   [rooms-ratom alert-ratom]
@@ -222,6 +235,21 @@
     (fn [_evt]
       (reset! rooms-ratom nil)
       (fetch-rooms! rooms-ratom alert-ratom))))
+
+(defn button-refresh-board
+  [board-ratom alert-ratom]
+  (let [{:keys [id]} @board-ratom]
+    (button-small-secondary
+      "Refresh"
+      (fn [_evt]
+        (fetch-room! board-ratom alert-ratom id)))))
+
+(defn button-page-rooms
+  [page-ratom]
+  (button-small-secondary
+    "Back"
+    (fn [_evt]
+      (reset! page-ratom :home))))
 
 ;;
 ;; Spinner
@@ -244,9 +272,9 @@
     [:div.jumbotron.jumbotron-fluid.overflow-hidden.text-center.mb-4.p-4
      [:header.mb-2
       [:h1.display-5 title]
-      [:p.lead description]
+      [:p description]
       [:hr.my-4]
-      [:h2 subtitle]]
+      [:h3 subtitle]]
      children]))
 
 ;;
@@ -257,17 +285,69 @@
   [:div.container-fluid
    (filter identity children)])
 
+(defn board-table
+  [board-ratom]
+  (let [{:keys                                        [id title]
+         {:keys [total]}                              :scoreboard
+         {:keys [units] {:keys [width height]} :size} :board} @board-ratom]
+    [:div
+     [:div.dinosaur.pixelated]
+     [:div.robot.pixelated]
+     [:div.robot.robot-right.pixelated]
+     [:div.robot.robot-left.pixelated]
+     [:div.robot.robot-up.pixelated]
+     [:div.robot.robot-down.pixelated]
+     ]
+    ;[ 
+    ; [:div.container
+    ; [:table.table.table-dark.table-bordered.table-hover.table-sm.table-responsive-sm
+    ;  [:tbody.board
+    ;   (repeat
+    ;     height
+    ;     [:tr
+    ;      (repeat
+    ;        width
+    ;        [:td ""])])]]]]
+    ))
+
+
+
 ;;
 ;; Pages
 ;;
+(defn board-page
+  [page-ratom board-ratom header-ratom rooms-ratom alert-ratom modal-ratom forms-ratom]
+  (let [{:keys [id title]} @board-ratom]
+    (fetch-room! board-ratom alert-ratom id)
+
+    (merge-ratom!
+      header-ratom
+      {:subtitle (str title " Board")
+       :children [:div
+                  ;(button-refresh-board board-ratom alert-ratom)
+                  ;(button-page-rooms page-ratom)
+                  ]})
+
+    (container [(alert alert-ratom)
+                (modal modal-ratom)
+                (jumbotron header-ratom)
+                (spinner-loading board-ratom)
+                (board-table board-ratom)])))
+
 (defn rooms-page
   "Show available rooms."
-  [header-ratom rooms-ratom alert-ratom]
-  (fetch-rooms! rooms-ratom alert-ratom)
+  [page-ratom board-ratom header-ratom rooms-ratom alert-ratom modal-ratom forms-ratom]
+
   (merge-ratom!
     header-ratom
-    {:subtitle "Rooms"
-     :children (button-refresh-rooms rooms-ratom alert-ratom)}))
+    {:subtitle "Choose a Room"
+     :children (button-refresh-rooms rooms-ratom alert-ratom)})
+
+  (container [(alert alert-ratom)
+              (modal modal-ratom)
+              (jumbotron header-ratom)
+              (spinner-loading rooms-ratom)
+              (room-cards rooms-ratom modal-ratom forms-ratom alert-ratom page-ratom board-ratom)]))
 
 ;;
 ;; State
@@ -279,6 +359,8 @@
             :children    nil}
    :alert  nil
    :rooms  nil
+   :board  {:id 3}
+   :page   :board
    :forms  {:new-room {:title ""
                        :size  {:width  "50"
                                :height "50"}}}
@@ -295,20 +377,35 @@
   "The app."
   []
   (let [state-ratom (r/atom initial-state)
+        page-cursor (r/cursor state-ratom [:page])
         header-cursor (r/cursor state-ratom [:header])
         alert-cursor (r/cursor state-ratom [:alert])
         rooms-cursor (r/cursor state-ratom [:rooms])
+        board-cursor (r/cursor state-ratom [:board])
         modal-cursor (r/cursor state-ratom [:modal])
         forms-ratom (r/cursor state-ratom [:forms])]
-    (rooms-page header-cursor rooms-cursor alert-cursor)
-    (fn []
-      (container
-        [(alert alert-cursor)
-         (modal modal-cursor)
-         (jumbotron header-cursor)
-         (spinner-loading rooms-cursor)
-         (room-cards rooms-cursor modal-cursor forms-ratom alert-cursor)]))))
 
+    (fetch-rooms! rooms-cursor alert-cursor)
+
+    (fn []
+      (let [page @page-cursor]
+        (case page
+          :home (rooms-page
+                  page-cursor
+                  board-cursor
+                  header-cursor
+                  rooms-cursor
+                  alert-cursor
+                  modal-cursor
+                  forms-ratom)
+          :board (board-page
+                   page-cursor
+                   board-cursor
+                   header-cursor
+                   rooms-cursor
+                   alert-cursor
+                   modal-cursor
+                   forms-ratom))))))
 ;;
 ;; Bootstrap
 ;;

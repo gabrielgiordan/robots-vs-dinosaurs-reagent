@@ -1,11 +1,11 @@
 {:lein         true
  :source-paths ["src"]
- :builds       {:app {:target     :browser
+ :builds       {:app {:target           :browser
                       :compiler-options {:infer-externs :auto}
-                      :output-dir "public/js"
-                      :asset-path "/js"
-                      :modules    {:app {:entries [robots-vs-dinosaurs-reagent.core]}}
-                      :devtools   {:after-load robots-vs-dinosaurs-reagent.core/mount-root}}}
+                      :output-dir       "public/js"
+                      :asset-path       "/js"
+                      :modules          {:app {:entries [robots-vs-dinosaurs-reagent.core]}}
+                      :devtools         {:after-load robots-vs-dinosaurs-reagent.core/mount-root}}}
 
  :dev-http     {3000 {:root    "public"
                       :handler user/app}}}
