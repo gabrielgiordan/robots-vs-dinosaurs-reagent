@@ -1,6 +1,7 @@
 {:lein         true
  :source-paths ["src"]
  :builds       {:app {:target     :browser
+                      :compiler-options {:infer-externs :auto}
                       :output-dir "public/js"
                       :asset-path "/js"
                       :modules    {:app {:entries [robots-vs-dinosaurs-reagent.core]}}
@@ -8,3 +9,4 @@
 
  :dev-http     {3000 {:root    "public"
                       :handler user/app}}}
+

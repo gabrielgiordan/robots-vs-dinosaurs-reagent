@@ -1,7 +1,10 @@
 (ns robots-vs-dinosaurs-reagent.core
   (:require
     [reagent.core :as r]
-    [ajax.core :refer [GET POST DELETE]]))
+    [ajax.core :refer [GET POST DELETE]]
+    [cljs.core.async :refer [<! timeout]])
+  (:require-macros
+    [cljs.core.async.macros :refer [go]]))
 
 (def uri "http://localhost:8080/api")
 
@@ -10,27 +13,34 @@
 ;;
 (defn merge-ratom!
   [ratom m]
-  (swap! ratom merge m))
+  (r/rswap! ratom merge m))
 
 (defn assoc-in-ratom-evt
   "`assoc-in` the ratom with the `evt` target value."
   ([ratom ks f]
    (fn [evt]
-     (swap! ratom assoc-in ks (f (some-> evt .-target .-value)))))
+     (r/rswap! ratom assoc-in ks (f (some-> evt .-target .-value)))))
   ([ratom ks]
    (assoc-in-ratom-evt ratom ks partial)))
 
 ;;
 ;; Alert
 ;;
+(defn alert-timeout
+  [alert-cursor]
+  (go
+    (<! (timeout 3500))
+    (reset! alert-cursor nil)))
+
 (defn alert
   [alert-cursor]
-  (let [{:keys [strong status message]} @alert-cursor]
+  (let [{:keys [title status message alert-class badge-class]} @alert-cursor]
     ^{:key :alert}
-    [:div.fixed-top
-     [:div.alert.alert-danger.alert-dismissible.fade.show {:role "alert"}
-      [:small.id.badge.badge-danger.text-monospace.mr-2 status]
-      [:strong.mr-1 strong]
+    [:div.fixed-top.fade
+     {:class (when status (alert-timeout alert-cursor) "show")}
+     [:div.alert.alert-dismissible {:class alert-class :role "alert"}
+      [:small.id.badge.text-monospace.mr-2 {:class badge-class} status]
+      [:strong.mr-1 title]
       [:span message]]]))
 
 ;;
@@ -39,23 +49,38 @@
 (defn error-handler
   [alert-ratom]
   (fn [{:keys [response status]}]
-    (merge-ratom! alert-ratom {:status status
-                               :message (-> response :error :message)})))
+    (merge-ratom!
+      alert-ratom
+      {:title       "Holy guacamole!"
+       :status      status
+       :badge-class "badge-danger"
+       :alert-class "alert-danger"
+       :message     (-> response :error :message)})))
+
+(defn success-handler
+  [alert-ratom message]
+  (reset!
+    alert-ratom
+    {:title       "Yeah!"
+     :status      201
+     :badge-class "badge-success"
+     :alert-class "alert-success"
+     :message     message}))
 
 (defn fetch-rooms!
   [rooms-ratom alert-ratom]
   (GET
     (str uri "/simulations")
-    {:handler       #(reset! rooms-ratom %)
-     :error-handler (error-handler alert-ratom)
+    {:handler         #(reset! rooms-ratom %)
+     :error-handler   (error-handler alert-ratom)
      :response-format :json, :keywords? true}))
 
 (defn delete-room!
   [rooms-ratom alert-ratom room-id]
   (DELETE
     (str uri "/simulations/" room-id)
-    {:handler       #(fetch-rooms! rooms-ratom alert-ratom)
-     :error-handler (error-handler alert-ratom)
+    {:handler         #(fetch-rooms! rooms-ratom alert-ratom)
+     :error-handler   (error-handler alert-ratom)
      :response-format :json, :keywords? true}))
 
 (defn new-room!
@@ -63,9 +88,10 @@
   (js/console.log params)
   (POST
     (str uri "/simulations")
-    {:params        params
-     :handler       #(fetch-rooms! rooms-ratom alert-ratom)
-     :error-handler (error-handler alert-ratom)
+    {:params          params
+     :handler         #((success-handler alert-ratom "Room created.")
+                        (fetch-rooms! rooms-ratom alert-ratom))
+     :error-handler   (error-handler alert-ratom)
      :response-format :json, :keywords? true}))
 
 ;;
@@ -251,9 +277,7 @@
             :description "Run simulations on remote-controlled robots that fight dinosaurs"
             :subtitle    ""
             :children    nil}
-   :alert  {:strong  "Woah!"
-            :message "Message"
-            :status 400}
+   :alert  nil
    :rooms  nil
    :forms  {:new-room {:title ""
                        :size  {:width  "50"
