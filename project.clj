@@ -5,7 +5,7 @@
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [org.clojure/clojurescript "1.10.520"]
-                 [reagent "0.8.1"]
+                 [reagent "0.9.0-SNAPSHOT"]
                  ;[clj-commons/secretary "1.2.4"]
                  [cljs-ajax "0.8.0"]]
   :source-paths ["src"]

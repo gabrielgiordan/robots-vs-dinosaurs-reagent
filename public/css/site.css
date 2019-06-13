@@ -1,3 +1,11 @@
+/* Sprites */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* Robots */
 .robot {
   background: url('./../img/robot-sprite.png') left center/425px;
   animation: play-robot .9s steps(19) infinite;
@@ -19,17 +27,17 @@
   background-position: -333px -69px;
 }
 
+/* Dinosaurs */
 .dinosaur {
-  background: url('./../img/dinosaur-sprite.png') left center/800px;
-  animation: play 1s steps(5) infinite;
+  background: url('./../img/dinosaur-vita.png') left center/800px;
+  animation: play-dinosaur 1s steps(5) infinite;
 }
 
-.pixelated {
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: crisp-edges;
+@keyframes play-dinosaur {
+   100% { background-position: -500px; }
 }
 
+/* Board */
 .board tbody {
   overflow: scroll;
 }
@@ -38,7 +46,8 @@
   white-space: nowrap;
 }
 
-.board td {
+.board td > a {
+  display: block;
   width: 30px;
   height: 30px;
 }
@@ -47,6 +56,37 @@
   background-color: #ffffff;
 }
 
-@keyframes play {
-   100% { background-position: -500px; }
+/* Score */
+.coin-gold {
+  margin-left: 8px;
+}
+
+.coin-gold:after {
+  display: block;
+  position: absolute;
+  top: 5px;
+  left: 0px;
+  content: "";
+  background: url('./../img/coin-gold.png') left center/70px;
+  background-position: 0px 0px;
+  animation: play-coin 3.5s steps(15) infinite;
+  width: 14px;
+  height: 14px;
+}
+
+@keyframes play-coin {
+   100% { background-position: 840px; }
+}
+
+/* Remote Control */
+.remote-control .selection {
+  display: block;
+  width: 30px;
+  height: 30px;
+  margin: auto;
+}
+
+/* No mouse events */
+.pointer-events-none {
+  pointer-events: none;
 }
