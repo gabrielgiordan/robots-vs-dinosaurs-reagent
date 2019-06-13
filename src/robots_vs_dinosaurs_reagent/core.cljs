@@ -138,7 +138,7 @@
   (POST
     (str uri "/simulations/" room-id "/robots")
     {:params          params
-     :handler         #((success-handler alert-ratom "Robot created." "Beep Bop!" 200)
+     :handler         #((success-handler alert-ratom "Robot created." "Beep Bop!" 201)
                         (ajax-get-room! board-ratom alert-ratom room-id)
                         nil)
      :error-handler   (error-handler alert-ratom)
@@ -188,7 +188,7 @@
   [board-ratom alert-ratom room-id robot-id]
   (GET
     (str uri "/simulations/" room-id "/robots/" robot-id "/attack")
-    {:handler         #((success-handler alert-ratom "Robot attacked!" "Beep Bop Boom!" 200)
+    {:handler         #((success-handler alert-ratom "Robot attacked the Dinosaurs!" "Beep Bop Boom!" 200)
                         (ajax-get-room! board-ratom alert-ratom room-id)
                         nil)
      :error-handler   (error-handler alert-ratom)
@@ -383,11 +383,11 @@
   [header-ratom]
   (let [{:keys [title description subtitle children]} @header-ratom]
     ^{:key :jumbotron}
-    [:div.jumbotron.jumbotron-fluid.overflow-hidden.text-center.mb-4.p-4
-     [:header.mb-2.robot-home
-      [:h1.display-5 title]
-      [:em description]
-      [:hr.my-4]
+    [:div.jumbotron.jumbotron-fluid.overflow-hidden.text-center.mt-2.mb-2.pt-2.pb-2
+     [:header.robot-home
+      [:h1.display-5.mb-1 title]
+      [:em.text-muted description]
+      [:hr.my-2]
       [:h5 subtitle]]
      children]))
 
@@ -396,7 +396,7 @@
 ;;
 (defn container
   [children]
-  [:div.container-fluid
+  [:div.container
    (filter identity children)])
 
 ;;
@@ -570,15 +570,29 @@
   [board-ratom]
   (let [{{:keys [x y]} :mouse-point} @board-ratom]
     ^{:key :mouse-point}
-    [:div.row.justify-content-center
+    [:div.row.justify-content-center.fixed-bottom
+     [:div.col-auto.mb-2
      [:span.badge.badge-dark.text-monospace
-      (point->str x y)]]))
+      (point->str x y)]]]))
+
+;;
+;; Scoreboard
+;;
+(defn scoreboard
+  [board-ratom]
+  (let [{{:keys [total]} :scoreboard} @board-ratom]
+    ^{:key :scoreboard}
+    [:div.row.justify-content-center
+     [:div.col-auto.mb-3.mt-2
+      [:div.coin-gold.text-monospace
+       [:span.badge.badge-warning.badge-lg.text-monospace.text-white (str "x " total)]]]]))
 
 ;;
 ;; Board
 ;;
 (defn board-table
   [board-ratom alert-ratom]
+
   (let [{{:keys [units] {:keys [width height]} :size} :board} @board-ratom]
     ^{:key :board-table}
     [:div.row.justify-content-center.board-container
@@ -614,20 +628,9 @@
                                       {:id id :x x :y y :class class :type type})
                                     (.preventDefault evt)
                                     nil)
-                  :class          class})]])])]]
-      (mouse-point board-ratom)]
+                  :class          class})]])])]]]
      (remote-control board-ratom alert-ratom)]))
 
-;;
-;; Scoreboard
-;;
-(defn scoreboard
-  [board-ratom]
-  (let [{{:keys [total]} :scoreboard} @board-ratom]
-    ^{:key :scoreboard}
-    [:div.row.justify-content-center
-     [:div.col-auto.mb-4
-      [:div.coin-gold.text-monospace (str "x " total)]]]))
 
 ;;
 ;; Pages
@@ -650,7 +653,8 @@
                 (jumbotron header-ratom)
                 (spinner-loading board-ratom)
                 (scoreboard board-ratom)
-                (board-table board-ratom alert-ratom)])))
+                (board-table board-ratom alert-ratom)
+                (mouse-point board-ratom)])))
 
 (defn rooms-page
   "Show available rooms."
@@ -677,7 +681,7 @@
             :children    nil}
    :alert  nil
    :rooms  nil
-   :board  {:id 3}
+   :board  {:id 16}
    :page   :home
    :forms  {:new-room {:title ""
                        :size  {:width  "50"
