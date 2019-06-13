@@ -12,16 +12,15 @@
 ;; Util
 ;;
 ;; HTMLElement.dataset
-(extend-type js/DOMStringMap
-  IEncodeClojure
-  (-js->clj [x options]
-    (let [result (atom {})]
-      (goog.object/forEach x
-                           (fn [val key obj]
-                             (when-not (re-matches #"^cljs.*" key)
-                               (swap! result assoc (keyword key) val))))
-      (deref result))))
-
+;(extend-type js/DOMStringMap
+;  IEncodeClojure
+;  (-js->clj [x options]
+;    (let [result (atom {})]
+;      (goog.object/forEach x
+;                           (fn [val key obj]
+;                             (when-not (re-matches #"^cljs.*" key)
+;                               (swap! result assoc (keyword key) val))))
+;      (deref result))))
 
 (defn merge-ratom!
   [ratom m]
@@ -62,7 +61,7 @@
       [:span message]]]))
 
 ;;
-;; AJAX
+;; AJAX Handlers
 ;;
 (defn error-handler
   [alert-ratom]
@@ -76,16 +75,21 @@
        :message     (-> response :error :message)})))
 
 (defn success-handler
-  [alert-ratom message]
-  (reset!
-    alert-ratom
-    {:title       "Yeah!"
-     :status      201
-     :badge-class "badge-success"
-     :alert-class "alert-success"
-     :message     message}))
+  ([alert-room message]
+   (success-handler alert-room message "Yeah!"))
+  ([alert-ratom message title]
+   (reset!
+     alert-ratom
+     {:title       title
+      :status      201
+      :badge-class "badge-success"
+      :alert-class "alert-success"
+      :message     message})))
 
-(defn fetch-room!
+;;
+;; AJAX
+;;
+(defn ajax-get-room!
   [board-ratom alert-ratom room-id]
   (GET
     (str uri "/simulations/" room-id)
@@ -93,7 +97,7 @@
      :error-handler   (error-handler alert-ratom)
      :response-format :json, :keywords? true}))
 
-(defn fetch-rooms!
+(defn ajax-get-rooms!
   [rooms-ratom alert-ratom]
   (GET
     (str uri "/simulations")
@@ -101,23 +105,93 @@
      :error-handler   (error-handler alert-ratom)
      :response-format :json, :keywords? true}))
 
-(defn delete-room!
+(defn ajax-delete-room!
   [rooms-ratom alert-ratom room-id]
   (DELETE
     (str uri "/simulations/" room-id)
-    {:handler         #(fetch-rooms! rooms-ratom alert-ratom)
+    {:handler         #(ajax-get-rooms! rooms-ratom alert-ratom)
      :error-handler   (error-handler alert-ratom)
      :response-format :json, :keywords? true}))
 
-(defn new-room!
+(defn ajax-new-room!
   [rooms-ratom alert-ratom params]
-  (js/console.log params)
   (POST
     (str uri "/simulations")
     {:params          params
      :handler         #((success-handler alert-ratom "Room created.")
-                        (fetch-rooms! rooms-ratom alert-ratom)
-                        (.preventDefault %)
+                        (ajax-get-rooms! rooms-ratom alert-ratom)
+                        nil)
+     :error-handler   (error-handler alert-ratom)
+     :response-format :json, :keywords? true}))
+
+(defn ajax-new-dinosaur!
+  [board-ratom alert-ratom room-id params]
+  (POST
+    (str uri "/simulations/" room-id "/dinosaurs")
+    {:params          params
+     :handler         #((success-handler alert-ratom "Dinosaur created." "Roar!")
+                        (ajax-get-room! board-ratom alert-ratom room-id)
+                        nil)
+     :error-handler   (error-handler alert-ratom)
+     :response-format :json, :keywords? true}))
+
+(defn ajax-new-robot!
+  [board-ratom alert-ratom room-id params]
+  (POST
+    (str uri "/simulations/" room-id "/robots")
+    {:params          params
+     :handler         #((success-handler alert-ratom "Robot created." "Beep Bop!")
+                        (ajax-get-room! board-ratom alert-ratom room-id)
+                        nil)
+     :error-handler   (error-handler alert-ratom)
+     :response-format :json, :keywords? true}))
+
+(defn ajax-robot-turn-left!
+  [board-ratom alert-ratom room-id robot-id]
+  (GET
+    (str uri "/simulations/" room-id "/robots/" robot-id "/turn-left")
+    {:handler         #((success-handler alert-ratom "Robot turned left." "Beeeeeeeep!")
+                        (ajax-get-room! board-ratom alert-ratom room-id)
+                        nil)
+     :error-handler   (error-handler alert-ratom)
+     :response-format :json, :keywords? true}))
+
+(defn ajax-robot-turn-right!
+  [board-ratom alert-ratom room-id robot-id]
+  (GET
+    (str uri "/simulations/" room-id "/robots/" robot-id "/turn-right")
+    {:handler         #((success-handler alert-ratom "Robot turned right." "Boooooooop!")
+                        (ajax-get-room! board-ratom alert-ratom room-id)
+                        nil)
+     :error-handler   (error-handler alert-ratom)
+     :response-format :json, :keywords? true}))
+
+(defn ajax-robot-move-forward!
+  [board-ratom alert-ratom room-id robot-id]
+  (GET
+    (str uri "/simulations/" room-id "/robots/" robot-id "/move-forward")
+    {:handler         #((success-handler alert-ratom "Robot moved forward." "Bzzzzzzz!")
+                        (ajax-get-room! board-ratom alert-ratom room-id)
+                        nil)
+     :error-handler   (error-handler alert-ratom)
+     :response-format :json, :keywords? true}))
+
+(defn ajax-robot-move-backward!
+  [board-ratom alert-ratom room-id robot-id]
+  (GET
+    (str uri "/simulations/" room-id "/robots/" robot-id "/move-backward")
+    {:handler         #((success-handler alert-ratom "Robot moved backward." "Buzzzz!")
+                        (ajax-get-room! board-ratom alert-ratom room-id)
+                        nil)
+     :error-handler   (error-handler alert-ratom)
+     :response-format :json, :keywords? true}))
+
+(defn ajax-robot-attack!
+  [board-ratom alert-ratom room-id robot-id]
+  (GET
+    (str uri "/simulations/" room-id "/robots/" robot-id "/attack")
+    {:handler         #((success-handler alert-ratom "Robot attacked!" "Beep Bop Boom!")
+                        (ajax-get-room! board-ratom alert-ratom room-id)
                         nil)
      :error-handler   (error-handler alert-ratom)
      :response-format :json, :keywords? true}))
@@ -149,8 +223,8 @@
      :button {:text     "Delete"
               :classes  "btn btn-danger"
               :on-click (fn [evt]
-                          (delete-room! rooms-ratom alert-ratom id)
-                          (fetch-rooms! rooms-ratom alert-ratom)
+                          (ajax-delete-room! rooms-ratom alert-ratom id)
+                          (ajax-get-rooms! rooms-ratom alert-ratom)
                           (.preventDefault evt)
                           nil)}}))
 
@@ -187,7 +261,7 @@
        :button {:text     "New"
                 :classes  "btn btn-primary"
                 :on-click (fn [evt]
-                            (new-room! rooms-ratom alert-ratom @form-cursor)
+                            (ajax-new-room! rooms-ratom alert-ratom @form-cursor)
                             (.preventDefault evt)
                             nil)}})))
 
@@ -267,7 +341,7 @@
     "Refresh"
     (fn [evt]
       (reset! rooms-ratom nil)
-      (fetch-rooms! rooms-ratom alert-ratom)
+      (ajax-get-rooms! rooms-ratom alert-ratom)
       (.preventDefault evt)
       nil)))
 
@@ -277,7 +351,7 @@
     (button-small-secondary
       "Refresh"
       (fn [evt]
-        (fetch-room! board-ratom alert-ratom id)
+        (ajax-get-room! board-ratom alert-ratom id)
         (.preventDefault evt)
         nil))))
 
@@ -328,7 +402,7 @@
 ;; Units
 ;;
 (defn get-unit-class
-  [units row col]
+  [units col row]
   (some->
     (fn [{{:keys [x y]} :point}]
       (and (= row y) (= col x)))
@@ -337,17 +411,18 @@
     (as->
       $
       (let
-        [{:keys                 [type]
+        [{:keys                 [id type]
           {:keys [orientation]} :direction} $]
         {:class (str
                   "pixelated "
                   type
                   (when orientation
                     (str " " type "-" orientation)))
+         :id    id
          :type  (clojure.string/capitalize type)}))))
 
 ;;
-;;
+;; Adapters
 ;;
 (defn point->str
   [x y]
@@ -366,47 +441,103 @@
 ;;
 
 (defn robot-remote-control
-  [x y]
+  [board-ratom alert-ratom room-id robot-id x y]
   [:div.btn-group-vertical.btn-group-sm {:role "group" :aria-label "Remote Control"}
 
    [:button.btn.btn-dark.rounded-0
-    {:type "button"}
+    {:type "button"
+     :on-click #(ajax-robot-turn-left!
+                  board-ratom
+                  alert-ratom
+                  room-id
+                  robot-id)}
     "Turn left"]
 
    [:button.btn.btn-dark.rounded-0
-    {:type "button"}
+    {:type "button"
+     :on-click #(ajax-robot-turn-right!
+                  board-ratom
+                  alert-ratom
+                  room-id
+                  robot-id)}
     "Turn right"]
 
    [:button.btn.btn-dark.rounded-0
-    {:type "button"}
+    {:type "button"
+     :on-click #(ajax-robot-move-forward!
+                  board-ratom
+                  alert-ratom
+                  room-id
+                  robot-id)}
     "Move forward"]
 
    [:button.btn.btn-dark.rounded-0
-    {:type "button"}
+    {:type "button"
+     :on-click #(ajax-robot-move-backward!
+                   board-ratom
+                   alert-ratom
+                   room-id
+                   robot-id)}
     "Move backward"]
 
    [:button.btn.btn-dark.rounded-0
-    {:type "button"}
+    {:type     "button"
+     :on-click #(ajax-robot-attack!
+                  board-ratom
+                  alert-ratom
+                  room-id
+                  robot-id)}
     "Attack!"]])
 
 (defn empty-remote-control
-  [x y]
+  [board-ratom alert-ratom x y room-id]
   [:div.btn-group-vertical.btn-group-sm {:role "group" :aria-label "Remote Control"}
 
-   [:button.btn.btn-dark.rounded-0
-    {:type "button"}
-    "New Robot"]
+   [:div.dropdown
+    [:button#new-robot.btn.btn-dark.btn-sm.rounded-0.dropdown-toggle
+     {:type          "button"
+      :data-toggle   "dropdown"
+      :aria-haspopup true
+      :aria-expanded false}
+     "New Robot"]
+    (letfn
+      [(new-robot
+         [orientation]
+         #(ajax-new-robot!
+            board-ratom
+            alert-ratom
+            room-id
+            {:point {:x x :y y} :orientation orientation}))]
+      [:div.dropdown-menu {:aria-labelledby "new-robot"}
+       [:h6.dropdown-header "What's the facing direction?"]
+       [:button.dropdown-item.btn-sm
+        {:type "button" :on-click (new-robot "up")} "Up"]
+       [:button.dropdown-item.btn-sm
+        {:type "button" :on-click (new-robot "right")} "Right"]
+       [:button.dropdown-item.btn-sm
+        {:type "button" :on-click (new-robot "down")} "Down"]
+       [:button.dropdown-item.btn-sm
+        {:type "button" :on-click (new-robot "left")} "Left"]])]
 
    [:button.btn.btn-dark.rounded-0
-    {:type "button"}
+    {:type     "button"
+     :on-click #(ajax-new-dinosaur!
+                  board-ratom
+                  alert-ratom
+                  room-id
+                  {:point
+                   {:x x
+                    :y y}})}
+
     "New Dinosaur"]])
 
 ;;
 ;; Remote Control
 ;;
 (defn remote-control
-  [board-ratom]
-  (let [{{{:keys [x y class type]} :selection} :remote-control} @board-ratom]
+  [board-ratom alert-ratom]
+  (let [{room-id                                  :id
+         {{:keys [id x y class type]} :selection} :remote-control} @board-ratom]
     ^{:key :remote-control}
     [:div.col-auto.remote-control
      [:div.card
@@ -416,12 +547,17 @@
        [:span.badge.badge-light.text-monospace (point->str x y)]]
       (when x
         (case type
-          "Robot" (robot-remote-control x y)
+          "Robot" (robot-remote-control
+                    board-ratom
+                    alert-ratom
+                    room-id
+                    id
+                    x y)
           "Dinosaur" nil
-          (empty-remote-control x y)))]]))
+          (empty-remote-control board-ratom alert-ratom x y room-id)))]]))
 
 ;;
-;; Board
+;; Point
 ;;
 (defn mouse-point
   [board-ratom]
@@ -432,10 +568,10 @@
       (point->str x y)]]))
 
 ;;
-;; Point
+;; Board
 ;;
 (defn board-table
-  [board-ratom]
+  [board-ratom alert-ratom]
   (let [{{:keys [units] {:keys [width height]} :size} :board} @board-ratom]
     ^{:key :board-table}
     [:div.row.justify-content-center
@@ -443,14 +579,14 @@
       [:table.board.table.table-bordered.table-hover.table-sm.table-responsive-sm
        [:tbody
         ^{:key :board-table-body}
-        (for [x (range 0 width)]
-          ^{:key (str "tr-" x)}
+        (for [y (range 0 width)]
+          ^{:key (str "tr-" y)}
           [:tr
-           (for [y (range 0 height)]
+           (for [x (range 0 height)]
              ^{:key (str "td-" x "-" y)}
              [:td.d-inline-block.p-0
               [:a
-               (let [{:keys [class type]} (get-unit-class units x y)]
+               (let [{:keys [class type id]} (get-unit-class units x y)]
                  {:href           "#"
                   :on-mouse-enter (fn [evt]
                                     (merge-ratom!
@@ -468,15 +604,12 @@
                                     (assoc-in-ratom!
                                       board-ratom
                                       [:remote-control :selection]
-                                      {:x x :y y :class class :type type})
+                                      {:id id :x x :y y :class class :type type})
                                     (.preventDefault evt)
                                     nil)
-                  :data-x         x
-                  :data-y         y
-                  :data-type      type
                   :class          class})]])])]]
       (mouse-point board-ratom)]
-     (remote-control board-ratom)]))
+     (remote-control board-ratom alert-ratom)]))
 
 ;;
 ;; Scoreboard
@@ -490,52 +623,27 @@
       [:div.coin-gold.text-monospace (str "x " total)]]]))
 
 ;;
-;; Remote Control
-;;
-;; https://github.com/reagent-project/reagent/issues/420
-;;
-;(defn remote-control []
-;  (r/with-let
-;    [pointer
-;     (r/atom nil)
-;     handler
-;     (fn [e]
-;       (let [e2 (js/document.querySelectorAll ":hover")
-;             e3 (last (array-seq e2))
-;             e4 (js->clj (.-dataset e3))]
-;         (swap! pointer assoc
-;                :e e4)))
-;     _ (js/document.addEventListener "mousemove" handler)]
-;    ^{:key :remote-control}
-;    [:div "Pointer moved to: " (str @pointer)]
-;    (finally
-;      (js/document.removeEventListener "mousemove" handler))))
-
-;;
 ;; Pages
 ;;
 (defn board-page
   [page-ratom board-ratom header-ratom rooms-ratom alert-ratom modal-ratom forms-ratom]
   (let [{:keys [id title board]} @board-ratom]
     (when-not board
-      (fetch-room! board-ratom alert-ratom id))
+      (ajax-get-room! board-ratom alert-ratom id))
 
     (merge-ratom!
       header-ratom
       {:subtitle (str title " Board")
        :children [:div
                   (button-refresh-board board-ratom alert-ratom)
-                  (button-page-rooms page-ratom)
-                  ]})
+                  (button-page-rooms page-ratom)]})
 
     (container [(alert alert-ratom)
                 (modal modal-ratom)
                 (jumbotron header-ratom)
                 (spinner-loading board-ratom)
                 (scoreboard board-ratom)
-                ;(drag-and-drop board-ratom)
-                ;(remote-control)
-                (board-table board-ratom)])))
+                (board-table board-ratom alert-ratom)])))
 
 (defn rooms-page
   "Show available rooms."
@@ -588,7 +696,7 @@
         modal-cursor (r/cursor state-ratom [:modal])
         forms-ratom (r/cursor state-ratom [:forms])]
 
-    (fetch-rooms! rooms-cursor alert-cursor)
+    (ajax-get-rooms! rooms-cursor alert-cursor)
 
     (fn []
       (let [page @page-cursor]

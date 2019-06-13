@@ -90,3 +90,8 @@
 .pointer-events-none {
   pointer-events: none;
 }
+
+/* Adjustments */
+#new-robot:after {
+  margin-left: .855em;
+}
