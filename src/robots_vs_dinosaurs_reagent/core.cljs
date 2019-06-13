@@ -291,6 +291,7 @@
        {:on-click (fn [evt]
                     (reset! board-ratom {:id id})
                     (reset! page-ratom :board)
+                    (ajax-get-room! board-ratom alert-ratom id)
                     (.preventDefault evt)
                     nil)}
        "Join »"]
@@ -639,8 +640,8 @@
 (defn board-page
   [page-ratom board-ratom header-ratom rooms-ratom alert-ratom modal-ratom forms-ratom]
   (let [{:keys [id title board]} @board-ratom]
-    (when-not board
-      (ajax-get-room! board-ratom alert-ratom id))
+    ;(when-not board
+    ;  (ajax-get-room! board-ratom alert-ratom id))
 
     (merge-ratom!
       header-ratom
