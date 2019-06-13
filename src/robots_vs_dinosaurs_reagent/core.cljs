@@ -2,25 +2,11 @@
   (:require
     [reagent.core :as r]
     [ajax.core :refer [GET POST DELETE]]
-    [cljs.core.async :refer [<! timeout]])
+    [cljs.core.async :as a])
   (:require-macros
     [cljs.core.async.macros :refer [go]]))
 
 (def uri "http://localhost:8080/api")
-
-;;
-;; Util
-;;
-;; HTMLElement.dataset
-;(extend-type js/DOMStringMap
-;  IEncodeClojure
-;  (-js->clj [x options]
-;    (let [result (atom {})]
-;      (goog.object/forEach x
-;                           (fn [val key obj]
-;                             (when-not (re-matches #"^cljs.*" key)
-;                               (swap! result assoc (keyword key) val))))
-;      (deref result))))
 
 (defn merge-ratom!
   [ratom m]
@@ -43,18 +29,27 @@
 ;;
 ;; Alert
 ;;
+;; Workaround
 (defn alert-timeout
   [alert-cursor]
+  (r/rswap! alert-cursor assoc :timer false)
+  (r/rswap! alert-cursor update :time + 4000)
+
   (go
-    (<! (timeout 3500))
-    (reset! alert-cursor nil)))
+    (a/<! (a/timeout (:time @alert-cursor)))
+    (when @alert-cursor
+      (r/rswap! alert-cursor update :time - 3000))
+    (when (>= 0 (:time @alert-cursor))
+      (reset! alert-cursor nil))))
 
 (defn alert
   [alert-cursor]
-  (let [{:keys [title status message alert-class badge-class]} @alert-cursor]
+  (let [{:keys [title status message alert-class badge-class timer]} @alert-cursor]
     ^{:key :alert}
-    [:div.pointer-events-none.fixed-top.fade
-     {:class (when status (alert-timeout alert-cursor) "show")}
+    [:div.pointer-events-none.fixed-top
+     {:class (when (and status timer)
+               (alert-timeout alert-cursor)
+               "show")}
      [:div.alert.alert-dismissible {:class alert-class :role "alert"}
       [:small.id.badge.text-monospace.mr-2 {:class badge-class} status]
       [:strong.mr-1 title]
@@ -68,7 +63,8 @@
   (fn [{:keys [response status]}]
     (merge-ratom!
       alert-ratom
-      {:title       "Holy guacamole!"
+      {:timer       true
+       :title       "Holy guacamole!"
        :status      status
        :badge-class "badge-danger"
        :alert-class "alert-danger"
@@ -76,12 +72,13 @@
 
 (defn success-handler
   ([alert-room message]
-   (success-handler alert-room message "Yeah!"))
-  ([alert-ratom message title]
+   (success-handler alert-room message "Yeah!" 201))
+  ([alert-ratom message title status]
    (reset!
      alert-ratom
-     {:title       title
-      :status      201
+     {:timer       true
+      :title       title
+      :status      status
       :badge-class "badge-success"
       :alert-class "alert-success"
       :message     message})))
@@ -89,11 +86,12 @@
 ;;
 ;; AJAX
 ;;
+;; TODO: refactor
 (defn ajax-get-room!
   [board-ratom alert-ratom room-id]
   (GET
     (str uri "/simulations/" room-id)
-    {:handler         #(reset! board-ratom %)
+    {:handler         #(r/rswap! board-ratom merge %)
      :error-handler   (error-handler alert-ratom)
      :response-format :json, :keywords? true}))
 
@@ -129,7 +127,7 @@
   (POST
     (str uri "/simulations/" room-id "/dinosaurs")
     {:params          params
-     :handler         #((success-handler alert-ratom "Dinosaur created." "Roar!")
+     :handler         #((success-handler alert-ratom "Dinosaur created." "Roar!" 201)
                         (ajax-get-room! board-ratom alert-ratom room-id)
                         nil)
      :error-handler   (error-handler alert-ratom)
@@ -140,7 +138,7 @@
   (POST
     (str uri "/simulations/" room-id "/robots")
     {:params          params
-     :handler         #((success-handler alert-ratom "Robot created." "Beep Bop!")
+     :handler         #((success-handler alert-ratom "Robot created." "Beep Bop!" 200)
                         (ajax-get-room! board-ratom alert-ratom room-id)
                         nil)
      :error-handler   (error-handler alert-ratom)
@@ -150,7 +148,7 @@
   [board-ratom alert-ratom room-id robot-id]
   (GET
     (str uri "/simulations/" room-id "/robots/" robot-id "/turn-left")
-    {:handler         #((success-handler alert-ratom "Robot turned left." "Beeeeeeeep!")
+    {:handler         #((success-handler alert-ratom "Robot turned left." "Beeeeeeeep!" 200)
                         (ajax-get-room! board-ratom alert-ratom room-id)
                         nil)
      :error-handler   (error-handler alert-ratom)
@@ -160,7 +158,7 @@
   [board-ratom alert-ratom room-id robot-id]
   (GET
     (str uri "/simulations/" room-id "/robots/" robot-id "/turn-right")
-    {:handler         #((success-handler alert-ratom "Robot turned right." "Boooooooop!")
+    {:handler         #((success-handler alert-ratom "Robot turned right." "Boooooooop!" 200)
                         (ajax-get-room! board-ratom alert-ratom room-id)
                         nil)
      :error-handler   (error-handler alert-ratom)
@@ -170,7 +168,7 @@
   [board-ratom alert-ratom room-id robot-id]
   (GET
     (str uri "/simulations/" room-id "/robots/" robot-id "/move-forward")
-    {:handler         #((success-handler alert-ratom "Robot moved forward." "Bzzzzzzz!")
+    {:handler         #((success-handler alert-ratom "Robot moved forward." "Bzzzzzzz!" 200)
                         (ajax-get-room! board-ratom alert-ratom room-id)
                         nil)
      :error-handler   (error-handler alert-ratom)
@@ -180,7 +178,7 @@
   [board-ratom alert-ratom room-id robot-id]
   (GET
     (str uri "/simulations/" room-id "/robots/" robot-id "/move-backward")
-    {:handler         #((success-handler alert-ratom "Robot moved backward." "Buzzzz!")
+    {:handler         #((success-handler alert-ratom "Robot moved backward." "Buzzzz!" 200)
                         (ajax-get-room! board-ratom alert-ratom room-id)
                         nil)
      :error-handler   (error-handler alert-ratom)
@@ -190,7 +188,7 @@
   [board-ratom alert-ratom room-id robot-id]
   (GET
     (str uri "/simulations/" room-id "/robots/" robot-id "/attack")
-    {:handler         #((success-handler alert-ratom "Robot attacked!" "Beep Bop Boom!")
+    {:handler         #((success-handler alert-ratom "Robot attacked!" "Beep Bop Boom!" 200)
                         (ajax-get-room! board-ratom alert-ratom room-id)
                         nil)
      :error-handler   (error-handler alert-ratom)
@@ -204,15 +202,15 @@
   (let [{:keys                           [title body]
          {:keys [text on-click classes]} :button} @modal-ratom]
     ^{:key :modal}
-    [:div#modal.modal.fade {:tabIndex "-1" :role "dialog" :aria-hidden "true"}
-     [:div.modal-dialog.modal-dialog-centered
-      [:div.modal-content
-       [:div.modal-header.bg-dark.text-white
+    [:div#modal.modal.fade.rounded-0 {:tabIndex "-1" :role "dialog" :aria-hidden "true"}
+     [:div.modal-dialog.modal-dialog-centered.rounded-0
+      [:div.modal-content.rounded-0
+       [:div.modal-header.bg-dark.text-white.rounded-0
         [:h5.modal-title title]]
        [:div.modal-body body]
        [:div.modal-footer
-        [:button.btn.btn-secondary {:data-dismiss "modal" :aria-label "close"} "Cancel"]
-        [:button {:class classes :on-click on-click :data-dismiss "modal" :aria-label "close"} text]]]]]))
+        [:button.btn.btn-secondary.rounded-0 {:data-dismiss "modal" :aria-label "close"} "Cancel"]
+        [:button.rounded-0 {:class classes :on-click on-click :data-dismiss "modal" :aria-label "close"} text]]]]]))
 
 (defn modal-delete-room
   [modal-ratom rooms-ratom alert-ratom {:keys [title id]}]
@@ -278,21 +276,24 @@
    board-ratom]
   ^{:key id}
   [:div.col-sm-4
-   [:div.card.text-white.bg-dark.mb-2
+   [:div.card.text-white.bg-dark.mb-2.rounded-0
     [:div.card-header "Simulation Room"
-     [:div [:small.id.badge.badge-secondary.text-monospace "ID " id]]]
+     [:div
+      [:small.id.badge.badge-info.text-monospace.rounded-0 "ID " id]
+      [:small.id.badge.badge-light.text-monospace.rounded-0.ml-2 width " x " height]
+      ]]
     [:div.card-body.text-center
      [:h5.card-title.mb-4 title]
-     [:p.card-text.text-monospace width " x " height]
+     ;[:p.card-text.text-monospace width " x " height]
      [:div.list-group
-      [:button.btn.btn-lg.btn-primary.mb-2
+      [:button.btn.btn-lg.btn-primary.mb-2.rounded-0
        {:on-click (fn [evt]
                     (reset! board-ratom {:id id})
                     (reset! page-ratom :board)
                     (.preventDefault evt)
                     nil)}
        "Join »"]
-      [:button.btn.btn-sm.btn-secondary
+      [:button.btn.btn-sm.btn-secondary.rounded-0
        {:data-toggle "modal"
         :data-target "#modal"
         :on-click    (fn [evt]
@@ -305,12 +306,12 @@
   [rooms-ratom alert-ratom modal-ratom forms-ratom]
   ^{:key "new"}
   [:div.col-sm-4.order-last
-   [:div.card.mb-2
+   [:div.card.mb-2.rounded-0
     [:div.card-body.text-center
      [:h5.card-title.mb-4 "New Simulation room"]
      [:p.card-text "Click below to create a new simulation room"]
      [:div.list-group
-      [:button.btn.btn-lg.btn-primary.mb-2
+      [:button.btn.btn-lg.btn-primary.mb-2.rounded-0
        {:data-target "#modal"
         :data-toggle "modal"
         :on-click    (fn [evt]
@@ -333,7 +334,7 @@
 ;;
 (defn button-small-secondary
   [text click-handler]
-  [:button.btn.btn-sm.btn-secondary.m-2 {:on-click click-handler} text])
+  [:button.btn.btn-sm.btn-info.m-2.rounded-0 {:on-click click-handler} text])
 
 (defn button-refresh-rooms
   [rooms-ratom alert-ratom]
@@ -383,11 +384,11 @@
   (let [{:keys [title description subtitle children]} @header-ratom]
     ^{:key :jumbotron}
     [:div.jumbotron.jumbotron-fluid.overflow-hidden.text-center.mb-4.p-4
-     [:header.mb-2
+     [:header.mb-2.robot-home
       [:h1.display-5 title]
-      [:p description]
+      [:em description]
       [:hr.my-4]
-      [:h3 subtitle]]
+      [:h5 subtitle]]
      children]))
 
 ;;
@@ -445,7 +446,7 @@
   [:div.btn-group-vertical.btn-group-sm {:role "group" :aria-label "Remote Control"}
 
    [:button.btn.btn-dark.rounded-0
-    {:type "button"
+    {:type     "button"
      :on-click #(ajax-robot-turn-left!
                   board-ratom
                   alert-ratom
@@ -454,7 +455,7 @@
     "Turn left"]
 
    [:button.btn.btn-dark.rounded-0
-    {:type "button"
+    {:type     "button"
      :on-click #(ajax-robot-turn-right!
                   board-ratom
                   alert-ratom
@@ -463,7 +464,7 @@
     "Turn right"]
 
    [:button.btn.btn-dark.rounded-0
-    {:type "button"
+    {:type     "button"
      :on-click #(ajax-robot-move-forward!
                   board-ratom
                   alert-ratom
@@ -472,12 +473,12 @@
     "Move forward"]
 
    [:button.btn.btn-dark.rounded-0
-    {:type "button"
+    {:type     "button"
      :on-click #(ajax-robot-move-backward!
-                   board-ratom
-                   alert-ratom
-                   room-id
-                   robot-id)}
+                  board-ratom
+                  alert-ratom
+                  room-id
+                  robot-id)}
     "Move backward"]
 
    [:button.btn.btn-dark.rounded-0
@@ -503,11 +504,14 @@
     (letfn
       [(new-robot
          [orientation]
-         #(ajax-new-robot!
+         (fn [evt]
+           (r/rswap! board-ratom assoc :remote-control nil)
+           (ajax-new-robot!
             board-ratom
             alert-ratom
             room-id
-            {:point {:x x :y y} :orientation orientation}))]
+            {:point {:x x :y y} :orientation orientation})
+           (.preventDefault evt)))]
       [:div.dropdown-menu {:aria-labelledby "new-robot"}
        [:h6.dropdown-header "What's the facing direction?"]
        [:button.dropdown-item.btn-sm
@@ -521,13 +525,16 @@
 
    [:button.btn.btn-dark.rounded-0
     {:type     "button"
-     :on-click #(ajax-new-dinosaur!
+     :on-click (fn [evt]
+                 (r/rswap! board-ratom assoc :remote-control nil)
+                 (ajax-new-dinosaur!
                   board-ratom
                   alert-ratom
                   room-id
                   {:point
                    {:x x
-                    :y y}})}
+                    :y y}})
+                  (.preventDefault evt))}
 
     "New Dinosaur"]])
 
@@ -539,7 +546,7 @@
   (let [{room-id                                  :id
          {{:keys [id x y class type]} :selection} :remote-control} @board-ratom]
     ^{:key :remote-control}
-    [:div.col-auto.remote-control
+    [:div.remote-control.col-auto
      [:div.card
       [:div.card-body.text-center
        [:span.badge.badge-light.text-monospace (unit-type->str type)]
@@ -574,7 +581,7 @@
   [board-ratom alert-ratom]
   (let [{{:keys [units] {:keys [width height]} :size} :board} @board-ratom]
     ^{:key :board-table}
-    [:div.row.justify-content-center
+    [:div.row.justify-content-center.board-container
      [:div.col-auto
       [:table.board.table.table-bordered.table-hover.table-sm.table-responsive-sm
        [:tbody
@@ -633,7 +640,7 @@
 
     (merge-ratom!
       header-ratom
-      {:subtitle (str title " Board")
+      {:subtitle (str "Board: " title)
        :children [:div
                   (button-refresh-board board-ratom alert-ratom)
                   (button-page-rooms page-ratom)]})
@@ -671,7 +678,7 @@
    :alert  nil
    :rooms  nil
    :board  {:id 3}
-   :page   :board
+   :page   :home
    :forms  {:new-room {:title ""
                        :size  {:width  "50"
                                :height "50"}}}

@@ -1,3 +1,22 @@
+/* Home */
+.robot-home:after {
+  background: url('./../img/robot-sprite.png') left center/1000px;
+  background-position: 12px -860px;
+  -webkit-transform: rotate(-30deg);
+  -moz-transform: rotate(-30deg);
+  -ms-transform: rotate(-30deg);
+  -o-transform: rotate(-30deg);
+  transform: rotate(-30deg);
+  display: block;
+  content: " ";
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
 /* Sprites */
 .pixelated {
   image-rendering: pixelated;
@@ -38,6 +57,10 @@
 }
 
 /* Board */
+.board-container {
+  min-height: 360px;
+}
+
 .board tbody {
   overflow: scroll;
 }
@@ -79,6 +102,11 @@
 }
 
 /* Remote Control */
+.remote-control  {
+  min-height: 300px;
+  width: 150px !important;
+}
+
 .remote-control .selection {
   display: block;
   width: 30px;
@@ -86,12 +114,11 @@
   margin: auto;
 }
 
+.remote-control #new-robot {
+  width: 118px !important;
+}
+
 /* No mouse events */
 .pointer-events-none {
   pointer-events: none;
-}
-
-/* Adjustments */
-#new-robot:after {
-  margin-left: .855em;
 }
