@@ -6,7 +6,8 @@
   (:require-macros
     [cljs.core.async.macros :refer [go]]))
 
-(def uri "http://localhost:8080/api")
+;(def uri "http://localhost:8080/api")
+(def uri "https://robots-vs-dinosaurs.herokuapp.com/api")
 
 (defn merge-ratom!
   [ratom m]
@@ -738,7 +739,7 @@
     [app]
     (.getElementById js/document "app")))
 
-(defn init!
+(defn ^:export init!
   "Init the app."
   []
   (mount-root))
