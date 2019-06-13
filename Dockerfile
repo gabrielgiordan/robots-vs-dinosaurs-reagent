@@ -1,8 +1,6 @@
 FROM nginx:alpine
 
 COPY nginx.conf /etc/nginx/nginx.conf
-COPY ./public /var/www
+COPY ./public /etc/nginx/html
 
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+CMD sed -i -e 's/$PORT/'"$PORT"'/g' /etc/nginx/nginx.conf && nginx -g 'daemon off;'
