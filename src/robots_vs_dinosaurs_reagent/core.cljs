@@ -92,7 +92,7 @@
   [board-ratom alert-ratom room-id]
   (GET
     (str uri "/simulations/" room-id)
-    {:handler         #(r/rswap! board-ratom merge %)
+    {:handler         #(reset! board-ratom (merge % {:id room-id}))
      :error-handler   (error-handler alert-ratom)
      :response-format :json, :keywords? true}))
 
@@ -289,7 +289,7 @@
      [:div.list-group
       [:button.btn.btn-lg.btn-primary.mb-2.rounded-0
        {:on-click (fn [evt]
-                    (reset! board-ratom {:id id})
+                    ;(r/rswap! board-ratom assoc :id id)
                     (reset! page-ratom :board)
                     (ajax-get-room! board-ratom alert-ratom id)
                     (.preventDefault evt)
