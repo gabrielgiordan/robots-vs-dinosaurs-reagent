@@ -4,13 +4,12 @@ ClojureScript app to present simulations on an army of remote-controlled robots 
 
 [Click here to view live on Heroku](https://robots-vs-dinosaurs-reagent.herokuapp.com/)
 
-<img src="doc/img/robots-vs-dinosaurs.gif" width="600" />
+<img src="doc/img/robots-vs-dinosaurs.gif" width="200" />
 
 ## Contents
 - [Overview](#overview)
 - [Development](#development)
 - [Deployment](#deployment)
-- [Preview](#preview)
 	
 <a name="overview"></a>
 ## Overview 
@@ -77,24 +76,6 @@ Then release the image to the app:
 heroku container:release web --app <heroku_app>
 ```
 
----
-
-<a name="preview"></a>
-## Preview
-
-Be able to create an empty simulation space:
-
-<img src="doc/img/new-simulation.png" width="600" />
-
-Be able to create a robot in a certain position and facing direction:
-
-<img src="doc/img/new-robot.png" width="600" />
-
-Be able to create a dinosaur in a certain position:
-
-<img src="doc/img/new-dinosaur.png" width="600" />
-
-<img src="doc/img/board.png" width="600" />
 ---
 
 ## License
