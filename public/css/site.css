@@ -48,8 +48,23 @@
 
 /* Dinosaurs */
 .dinosaur {
-  background: url('./../img/dinosaur-vita.png') left center/800px;
   animation: play-dinosaur 1s steps(5) infinite;
+}
+
+.dinosaur-vita {
+  background: url('./../img/dinosaur-vita-sprite.png') left center/800px;
+}
+
+.dinosaur-doux {
+  background: url('./../img/dinosaur-doux-sprite.png') left center/800px;
+}
+
+.dinosaur-mort {
+  background: url('./../img/dinosaur-mort-sprite.png') left center/800px;
+}
+
+.dinosaur-tard {
+  background: url('./../img/dinosaur-tard-sprite.png') left center/800px;
 }
 
 @keyframes play-dinosaur {
@@ -59,6 +74,12 @@
 /* Board */
 .board-container {
   min-height: 360px;
+}
+
+@media (max-width: 575.98px) {
+  .board {
+    max-height: 180px;
+  }
 }
 
 .board tbody {
@@ -80,17 +101,17 @@
 }
 
 /* Score */
-.coin-gold {
+.coin {
   margin-left: 8px;
 }
 
-.coin-gold:after {
+.coin:after {
   display: block;
   position: absolute;
   top: 5px;
   left: 0px;
   content: "";
-  background: url('./../img/coin-gold.png') left center/70px;
+  background: url('./../img/coin-sprite.png') left center/70px;
   background-position: 0px 0px;
   animation: play-coin 3.5s steps(15) infinite;
   width: 14px;
@@ -103,7 +124,7 @@
 
 /* Remote Control */
 .remote-control  {
-  min-height: 300px;
+  min-height: 320px;
   width: 150px !important;
 }
 
@@ -118,7 +139,55 @@
   width: 118px !important;
 }
 
-/* No mouse events */
+/* Mouse */
 .pointer-events-none {
   pointer-events: none;
 }
+
+.pointer:hover {
+   cursor: pointer;
+}
+
+/* General */
+.btn-purple {
+  background-color:#8A05BE !important;
+  border-color: #7D0AA8;
+  color: white !important;
+}
+.btn-purple:focus {
+  box-shadow: 0 0 0 0.2rem #7D0AA880 !important;
+}
+
+.dropdown-item.active, .dropdown-item:active {
+  background-color: #8a05be !important;
+}
+
+.dropdown-item:focus {
+  outline: 5px auto #8a05be;
+}
+
+.badge-black, .btn-black {
+  background-color: #000000 !important;
+  color: white !important;
+}
+
+.btn-black {
+  border-color: #424242 !important;
+}
+
+.btn-black:focus {
+  box-shadow: 0 0 0 0.2rem #76767680 !important;
+}
+
+.text-purple {
+  color: #8A05BE;
+}
+
+.text-gray {
+  color: #767676;
+}
+
+.badge-lg {
+  font-size: 80% !important;
+}
+
