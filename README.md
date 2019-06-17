@@ -14,7 +14,7 @@ ClojureScript app to present simulations on an army of remote-controlled robots 
 <a name="overview"></a>
 ## Overview 
 
-The **Reagent** client-side ClojureScript **SPA** app for **Robots vs Dinosaurs** which can be exposed with **Nginx** and deployed on Docker and Heroku.
+The **Reagent** client-side ClojureScript **SPA**, responsive, app for **Robots vs Dinosaurs** which can be exposed with **Nginx** and deployed on Docker and Heroku.
 
 The client-side app consumes the server-side app accepting and sending the `application/transit+json` format for faster communication.
 
